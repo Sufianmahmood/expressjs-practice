@@ -2,7 +2,11 @@ import express, { request, response } from 'express';
 
 const app  = express();
 
+app.use(express.json())
+
 const PORT = process.env.PORT || 3000;
+
+
 
 const mockUsers = [
         {id: 1, username: "sufian", displayName:"Mahmood" },
@@ -15,7 +19,24 @@ app.get("/", (request, response) =>  {
 });
 
 app.get("/api/users", (request, response) =>  {
-    response.send(mockUsers)
+    console.log(request.query);
+    const {
+        query: { filter, value},
+    } = request;
+ 
+ if (!filter && !value) return response.send(mockUsers); 
+ if (filter && value) 
+    return response.send(
+mockUsers.filter(user => user[filter].includes(value))
+);
+ return response.send(mockUsers);
+});
+
+app.post("/api/users", (request, response) => {
+      const { body} = request;
+      const  newUser = { id: mockUsers[mockUsers.length -1].id +1,...body};
+      mockUsers.push(newUser);
+      return response.status(201).send(newUser);
 });
 
 app.get("/api/users/:id", (request, response) => {
