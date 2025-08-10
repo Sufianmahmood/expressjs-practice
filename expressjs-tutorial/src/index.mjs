@@ -1,5 +1,6 @@
 import express, { request, response } from 'express';
-
+import { query, validationResult, body, matchedData, checkSchema  } from 'express-validator';
+import {createUserValidationSchema} from './utils/validationSchemas' 
 const app  = express();
 
 app.use(express.json())
@@ -55,13 +56,21 @@ app.get("/",
 );
 
 
-app.get("/api/users", (request, response) =>  {
-    console.log(request.query);
+app.get(
+    "/api/users",
+    query("filter")
+    .isString()
+    .notEmpty()
+    .withMessage("must not be empty")
+    .isLength({ min: 3, max: 10 })
+    .withMessage('must be atleast 2 to 3 character'),
+    (request, response) =>  {
+    const result = validationResult(request);
+    console.log(result);
     const {
         query: { filter, value},
     } = request;
  
- if (!filter && !value) return response.send(mockUsers); 
  if (filter && value) 
     return response.send(
 mockUsers.filter(user => user[filter].includes(value))
@@ -69,9 +78,18 @@ mockUsers.filter(user => user[filter].includes(value))
  return response.send(mockUsers);
 });
 
-app.post("/api/users", (request, response) => {
-      const { body} = request;
-      const  newUser = { id: mockUsers[mockUsers.length -1].id +1,...body};
+app.post(
+    "/api/users",
+    checkSchema(createUserValidationSchema), 
+    (request, response) => {
+      const result = validationResult(request);
+      console.log(result);
+       
+      if (!result.isEmpty())
+        return response.status(400).send({ errors: result.array() });
+       
+        const data = matchedData(request);
+      const  newUser = { id: mockUsers[mockUsers.length -1].id +1,...data};
       mockUsers.push(newUser);
       return response.status(201).send(newUser);
 });
