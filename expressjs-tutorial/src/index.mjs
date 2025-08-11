@@ -1,9 +1,15 @@
 import express, { request, response } from 'express';
 import { query, validationResult, body, matchedData, checkSchema  } from 'express-validator';
-import {createUserValidationSchema} from './utils/validationSchemas' 
+import {createUserValidationSchema} from './utils/validationSchemas.mjs' ;
+import routes from './routes/index.mjs';
+import { mockUsers  } from './utils/constants.mjs';
+
+
 const app  = express();
 
 app.use(express.json())
+app.use(routes)
+
 
 const loggingMiddleware = (request, response, next) => {
   console.log(`${request.method} - ${request.url}`);
@@ -25,74 +31,20 @@ const resolveIndexByUserId = (request, response, next) => {
 const PORT = process.env.PORT || 3000;
 
 
-
-const mockUsers = [
-        {id: 1, username: "sufian", displayName:"Mahmood" },
-        {id: 2, username: "Aseef", Name: "Asif"},
-        {id: 3, username: "hasan", Name: "Hassan"}
-    ];
-
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
 
-app.get("/", 
-        (request, response, next) =>  {
-        console.log("Base URL1");
-
-        next();
-    },
-    (request, response, next) => {
-    console.log("Base URl2");
-    
-    next();
-    },
-    (request, response, next) => {
-    console.log("Base URl3");
-    
-    next();}
-
+app.get("/",  (request, response) => {
+  response.cookie("hello", "world", {maxAge: 60000 *  60});
+    response.status(201).send({ msg: "hello" })
+}
 );
 
 
-app.get(
-    "/api/users",
-    query("filter")
-    .isString()
-    .notEmpty()
-    .withMessage("must not be empty")
-    .isLength({ min: 3, max: 10 })
-    .withMessage('must be atleast 2 to 3 character'),
-    (request, response) =>  {
-    const result = validationResult(request);
-    console.log(result);
-    const {
-        query: { filter, value},
-    } = request;
- 
- if (filter && value) 
-    return response.send(
-mockUsers.filter(user => user[filter].includes(value))
-);
- return response.send(mockUsers);
-});
 
-app.post(
-    "/api/users",
-    checkSchema(createUserValidationSchema), 
-    (request, response) => {
-      const result = validationResult(request);
-      console.log(result);
-       
-      if (!result.isEmpty())
-        return response.status(400).send({ errors: result.array() });
-       
-        const data = matchedData(request);
-      const  newUser = { id: mockUsers[mockUsers.length -1].id +1,...data};
-      mockUsers.push(newUser);
-      return response.status(201).send(newUser);
-});
+
 
 
 
@@ -106,12 +58,7 @@ app.get("/api/users/:id", (request, response) => {
     return response.send(findUser);
 });
 
-app.get("/api/products", (request, response) => {
-     response.send([
-        {id: 1, name: "chicken", price: 100},
-        {id: 2, name: "beef", price: 200},
-     ]);
-});
+
 
 app.put("/api/users/:id", resolveIndexByUserId, (req, res) => {
     const { body, findUserIndex } = req;
