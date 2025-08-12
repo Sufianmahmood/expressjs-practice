@@ -3,11 +3,22 @@ import { query, validationResult, body, matchedData, checkSchema  } from 'expres
 import {createUserValidationSchema} from './utils/validationSchemas.mjs' ;
 import routes from './routes/index.mjs';
 import { mockUsers  } from './utils/constants.mjs';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 
 
 const app  = express();
 
 app.use(express.json())
+app.use(cookieParser())
+app.use(session({
+    secret: 'sufian dev',
+    saveUninitialized: false,
+    resave: false,
+    cookie: {
+        maxAge: 6000 * 60,
+    }
+}))
 app.use(routes)
 
 
@@ -26,7 +37,7 @@ const resolveIndexByUserId = (request, response, next) => {
     request.findUserIndex = findUserIndex;
     next();
 };
-
+ 
 
 const PORT = process.env.PORT || 3000;
 
@@ -37,7 +48,10 @@ app.listen(PORT, () => {
 
 
 app.get("/",  (request, response) => {
-  response.cookie("hello", "world", {maxAge: 60000 *  60});
+    console.log(request.session);
+    console.log(request.session.id);
+    request.session.visited = true; 
+  response.cookie("hello", "world", {maxAge: 10000});
     response.status(201).send({ msg: "hello" })
 }
 );
