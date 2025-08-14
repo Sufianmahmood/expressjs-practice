@@ -5,6 +5,8 @@ import routes from './routes/index.mjs';
 import { mockUsers  } from './utils/constants.mjs';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import passport from 'passport';
+import "./strategies/local-strategy.mjs"
 
 
 const app  = express();
@@ -19,8 +21,25 @@ app.use(session({
         maxAge: 6000 * 60,
     }
 }))
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(routes)
 
+
+app.post("/api/auth", (request, response) => {
+    const {
+        body: { username, password },
+    } = request;
+    
+    const findUser = mockUsers.find((user) => user.username === username);
+    if (!findUser || findUser.password !== password)
+       return response.status(401).send({msg: "Unauthorized"})
+
+    request.session.user = findUser;
+    return response.status(200).send(findUser);
+
+})
 
 const loggingMiddleware = (request, response, next) => {
   console.log(`${request.method} - ${request.url}`);
@@ -38,6 +57,25 @@ const resolveIndexByUserId = (request, response, next) => {
     next();
 };
  
+app.post(
+    "/api/auth",
+    passport.authenticate("local"),
+    (request, response) => {
+   response.sendStatus(200)
+    }
+);
+
+app.get("/api/auth/status", (request, response) => {
+    console.log(`Inside /auth/status endpoint`);
+    console.log(request.user);
+    console.log(request.session);
+    
+   // if (request.user) return response.send(request.user); return response.sendStatus(401);
+
+    return request.user ? response.send(request.user) : response.sendStatus(401);
+});
+
+
 
 const PORT = process.env.PORT || 3000;
 
@@ -95,22 +133,28 @@ app.delete("/api/users/:id", (request, response) => {
         return response.sendStatus(200);
 });
 
-app.post("/api/auth", (request, response) => {
-    const {
-        body: { username, password },
-    } = request;
-    
-    const findUser = mockUsers.find((user) => user.username === username);
-    if (!findUser || findUser.password !== password)
-       return response.status(401).send({msg: "Unauthorized"})
-
-    request.session.user = findUser;
-    return response.status(200).send(findUser);
-
-})
 
 app.get("/api/auth/status" , (request, response) => {
+    request.sessionStore.get(request.sessionID, (err, session) => {
+        console.log(session);
+    });
       return response.session.user
       ? response.send(request.session.user)
       : response.status(401).send({msg: "Unauthorized"});
+});
+
+app.post("/api/cart", (request, response) =>{
+    if (!request.session.user) return response.sendStatus(401);
+    const { body: item } = request;
+    const { cart } = request.session;
+    if (cart) {
+        cart.push(item);
+    } else {
+        request.session.cart = [item];
+    }
+    return response.status(201).send(item);
+});
+app.get("/api/cart", (request, response) => {
+ if (!request.session.user) return response.sendStatus(401);
+ return response.send(request.session.cart ?? []);
 });
