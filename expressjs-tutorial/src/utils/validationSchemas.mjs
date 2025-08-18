@@ -13,11 +13,12 @@ export const createUserValidationSchema = {
             },
             isString: {
                 errorMessage: "Username must be a string"
-            },  
-            
-           
-        },
+            },          
+            },
         displayName: {
+            notEmpty: true,
+        },
+        password: {
             notEmpty: true,
         }
     };

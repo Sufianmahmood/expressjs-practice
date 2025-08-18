@@ -6,9 +6,14 @@ import { mockUsers } from './utils/constants.mjs';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
+import mongoose from 'mongoose';
 import "./strategies/local-strategy.mjs";
 
 const app = express();
+
+mongoose.connect('mongodb://localhost:27017/expressjs-tutorial') 
+.then(() => console.log('Connected to Database'))
+.catch((err) => console.error(`Error : ${err}`));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -67,6 +72,15 @@ app.get("/api/auth/status", (request, response) => {
     console.log(request.session);
     return request.user ? response.send(request.user) : response.sendStatus(401);
 });
+
+app.post("/api/auth/logout", (request, response) => {
+    if (!request.user) return response.sendStatus(401);
+    request.logout((err) => {
+        if (err) return response.status(400);
+        response.send(200);
+    })
+})
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

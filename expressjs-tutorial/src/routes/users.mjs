@@ -1,8 +1,10 @@
-import { Router } from 'express';
+import { request, response, Router } from 'express';
 import { query, validationResult, checkSchema, matchedData } from 'express-validator'; 
 import { mockUsers } from '../utils/constants.mjs';
 import { createUserValidationSchema } from '../utils/validationSchemas.mjs';
 import session from 'express-session';
+import { User } from "../mongoose/schemas/user.mjs";
+
 
 const router = Router();
 
@@ -36,8 +38,9 @@ router.get(
     );
      return response.send(mockUsers);
     });
-    
-    router.post(
+     
+ /*  (using mockusers)
+  router.post(
     
             "/api/users",
             checkSchema(createUserValidationSchema), 
@@ -53,6 +56,26 @@ router.get(
               mockUsers.push(newUser);
               return response.status(201).send(newUser);
         });
+*/
+    router.post("/api/users", 
+      checkSchema(createUserValidationSchema),
+       async (request, response) => {
+
+        const result = validationResult(request);
+        if(!result.isEmpty()) return response.status(400).send(result.array());
+
+      const data = matchedData(request);
+      console.log(data);
+      const { body} = request;
+      const newUser = new User(body);
+      try {
+      const savedUser = await newUser.save();
+      return response.status(201).send(savedUser);
+      } catch (err) {
+    console.log(err);
+    return response.sendStatus(400);
     
+      }
+    })
 
     export default router;
